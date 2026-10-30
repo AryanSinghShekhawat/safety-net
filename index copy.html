@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CityWatch Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Leaflet CSS for real interactive maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="./src/assets/style.css">
+</head>
+<body class="bg-gray-200 flex items-center justify-center min-h-screen">
+
+<!-- Mobile Shell Container -->
+<div class="w-full max-w-md bg-gray-50 h-[800px] max-h-screen shadow-2xl relative flex flex-col overflow-hidden sm:rounded-[2.5rem] sm:border-8 border-gray-900">
+
+  <!-- Header & Health Score Gauge -->
+  <header class="bg-white p-4 shadow-sm z-10 flex justify-between items-center">
+    <h1 class="font-extrabold text-xl text-gray-900 tracking-tight">CityWatch</h1>
+    <div class="flex items-center gap-2">
+      <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Health<br>Score</div>
+      <div class="w-11 h-11 rounded-full border-[4px] border-emerald-400 flex items-center justify-center font-bold text-emerald-600 bg-emerald-50" id="health-score">
+        --
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  
+<main class="flex-1 overflow-y-auto pb-4 relative bg-gray-50" id="main-content">
+    
+<!-- Tab: Nearby -->
+<div id="tab-nearby" class="block h-full">
+  <div class="h-56 w-full relative shadow-inner overflow-hidden" id="map-container">
+    <iframe 
+      class="w-full h-full border-0"
+      id="google-map-iframe"
+      src="https://maps.google.com/maps?q=Jaipur,+Rajasthan&z=14&output=embed" 
+      allowfullscreen="" 
+      loading="lazy" 
+      referrerpolicy="no-referrer-when-downgrade">
+    </iframe>
+  </div>
+  <div class="p-4 space-y-4 -mt-4 relative z-10" id="incident-list"></div>
+</div>
+    <!-- Tab: Report Form -->
+    <div id="tab-report" class="hidden p-6 h-full bg-white">
+      <h2 class="text-2xl font-bold mb-6 text-gray-900">Report an Issue</h2>
+      <form class="space-y-6" onsubmit="event.preventDefault(); alert('Report Submitted!');">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Category</label>
+          <select class="w-full border-gray-200 rounded-xl shadow-sm p-4 bg-gray-50 border focus:ring-2 focus:ring-blue-500 outline-none">
+            <option>Pothole</option>
+            <option>Broken Streetlight</option>
+            <option>Fallen Tree</option>
+            <option>Accessibility Hazard</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Location Description</label>
+          <input type="text" placeholder="e.g., Main St & 4th Ave" class="w-full border-gray-200 rounded-xl shadow-sm p-4 bg-gray-50 border focus:ring-2 focus:ring-blue-500 outline-none">
+        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white font-bold text-lg py-4 rounded-xl shadow-lg mt-4 active:scale-95 transition transform">
+          Submit Report
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <!-- Bottom Navigation Bar -->
+
+<nav class="w-full bg-white border-t border-gray-100 flex justify-around p-3 pb-6 sm:pb-4 z-20 flex-shrink-0 shadow-lg">
+  <button class="flex flex-col items-center text-gray-400 transition" id="nav-report">
+    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+    <span class="text-[10px] font-bold tracking-wide">REPORT</span>
+  </button>
+  <button class="flex flex-col items-center text-blue-600 transition" id="nav-nearby">
+    <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+    <span class="text-[10px] font-bold tracking-wide">NEARBY</span>
+  </button>
+</nav>
+
+</div>
+
+<!-- Load Main Script as a Module -->
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
