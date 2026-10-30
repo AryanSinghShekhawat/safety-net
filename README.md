@@ -1,5 +1,5 @@
 Hyperlocal Safety Network
-Hackathon Submission | [Hackathon Name] | [Date]
+Sphinx'26 24 hr Hackathon Submission
 
 Overview
 This repository contains the hackathon prototype for a hyperlocal community safety network. The application enables residents of apartment complexes and neighborhoods to report local incidents (water outages, power failures, safety hazards) and provides a mechanism to consolidate duplicate reports into verified, actionable incidents.
@@ -76,7 +76,7 @@ Prerequisites: Node.js version 18 or later, and a Supabase account.
 1. Clone the repository.
 
 bash
-git clone [repository-url]
+git clone https://github.com/AryanSinghShekhawat/safety-net.git
 cd safety-net
 2. Install dependencies.
 
