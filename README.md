@@ -34,12 +34,14 @@ Score = 100
 Administrative resolution. A dashboard lists all unresolved incidents. Marking an incident as resolved removes it from the resident feed and immediately recalculates the health score.
 
 Technology Stack
-Component	Technology
-Frontend	React with Vite
-Backend	Supabase (PostgreSQL)
-Clustering logic	Vanilla JavaScript (Haversine formula)
-Styling	Tailwind CSS
-Deployment	Vercel
+Frontend from React with Vite.
+
+Backend with Supabase (PostgreSQL).
+
+Clustering logic via Vanilla JavaScript (Haversine formula).
+
+Styling via Tailwind CSS.
+
 Data Model
 Two tables are used:
 
@@ -47,7 +49,8 @@ incidents: Consolidated parent incidents. Fields include identifier, category, c
 
 reports: Raw user submissions. Each report references the parent incident it was merged into.
 
-Clustering Algorithm
+Clustering Algorithm:-
+
 The clustering function executes the following sequence:
 
 Retrieve unresolved incidents in the same category created within the last four hours.
@@ -60,24 +63,36 @@ Otherwise, create a new parent incident.
 
 For the hackathon build, this logic runs on the client. Moving it to a server-side function is a defined production task.
 
-Implemented Features
+Implemented Features:-
+
 Feature	Status
-Mobile-first Progressive Web Application	Complete
-Geolocation-based incident reporting	Complete
-Incident clustering (200m radius, 4-hour window)	Complete
-Community verification via upvotes	Complete
-Real-time resident incident feed	Complete
-Neighborhood health score with visual indicator	Complete
-Administrative dashboard with resolution controls	Complete
-Seed data utility for demonstration	Complete
+Mobile-first Progressive Web Application - Complete
+
+Geolocation-based incident reporting - Complete
+
+Incident clustering (200m radius, 4-hour window) - Complete
+
+Community verification via upvotes - Complete
+
+Real-time resident incident feed - Complete
+
+Neighborhood health score with visual indicator - Complete
+
+Administrative dashboard - Complete
+
+Seed data utility for demonstration - Complete
+
 Setup Instructions
+
 Prerequisites: Node.js version 18 or later, and a Supabase account.
 
 1. Clone the repository.
 
 bash
 git clone https://github.com/AryanSinghShekhawat/safety-net.git
+
 cd safety-net
+
 2. Install dependencies.
 
 bash
@@ -96,11 +111,10 @@ npm run dev
 The application will be available at http://localhost:5173. Use the browser developer tools device emulation for the intended mobile experience.
 
 Demonstration Assets
-Asset	Location
 Reporting interface screenshot	docs/screenshots/report.png
 Resident feed screenshot	docs/screenshots/feed.png
 Administrative dashboard screenshot	docs/screenshots/admin.png
-Known Limitations
+
 The following limitations are acknowledged for transparency:
 
 Clustering executes on the client. This is suitable for demonstration but not for production, where server-side validation is required to prevent manipulation.
@@ -114,7 +128,9 @@ The administrative interface lacks authentication and is publicly accessible in 
 These limitations define the production roadmap.
 
 Team
-Member	Role	Responsibilities
-ARYAN SINGH SHEKHAWAT	Lead and Architect	Database schema, clustering algorithm, health score computation, technical integration
-PRINCE VERMA	Full-Stack Developer	Real-time synchronization, seed data generation, verification workflow, submission pipeline
-AMARTYA RANJAN BOSE AND AYUSH KUMAR	Interface and Presentation	User interface design, health score visualization, demonstration preparation
+
+ARYAN SINGH SHEKHAWAT - Lead and Architect - Database schema, clustering algorithm, health score computation, technical integration.
+
+PRINCE VERMA - Full-Stack Developer - Real-time synchronization, seed data generation, verification workflow, submission pipeline.
+
+AMARTYA RANJAN BOSE AND AYUSH KUMAR - Interface and Presentation - User interface design, health score visualization, demonstration preparation.
