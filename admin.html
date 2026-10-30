@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - CityWatch</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 md:p-8">
+  
+  <div class="max-w-6xl mx-auto space-y-6">
+    <!-- Top Bar -->
+    <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm">
+      <h1 class="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+      <a href="index.html" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">Back to App</a>
+    </div>
+
+    <!-- Health Score Summary -->
+    <div class="bg-white p-8 rounded-xl shadow-sm text-center flex flex-col items-center">
+      <h2 class="text-lg font-semibold text-gray-500 mb-2">Neighborhood Health Score</h2>
+      <div id="admin-score" class="text-6xl font-black w-32 h-32 flex items-center justify-center rounded-full border-8 border-gray-200 transition-colors duration-300">
+        --
+      </div>
+      <p id="admin-subtext" class="mt-4 text-gray-500 font-medium">Calculating based on unresolved incidents...</p>
+    </div>
+
+    <!-- Incident Table -->
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-100 text-gray-600 text-sm uppercase tracking-wider">
+              <th class="p-4 font-semibold">Category</th>
+              <th class="p-4 font-semibold">Location</th>
+              <th class="p-4 font-semibold">Upvotes</th>
+              <th class="p-4 font-semibold">Age</th>
+              <th class="p-4 font-semibold">Action</th>
+            </tr>
+          </thead>
+          <tbody id="admin-table-body" class="divide-y divide-gray-200">
+            <!-- Rows injected by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Demo Seed Button -->
+    <div class="flex justify-end mt-8">
+      <button id="btn-seed" class="px-4 py-2 text-sm text-gray-500 border border-gray-300 rounded hover:bg-gray-100 transition">
+        Seed Demo Data
+      </button>
+    </div>
+  </div>
+
+  <script type="module" src="./src/admin.js"></script>
+</body>
+</html>
