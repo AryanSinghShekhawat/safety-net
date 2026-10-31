@@ -104,23 +104,42 @@ export default function App() {
       <Toaster position="top-right" />
 
       {/* Top Enterprise Navigation Bar */}
+      {/* Top Enterprise Navigation Bar */}
       <header className="h-16 bg-slate-900 border-b border-slate-800 px-6 flex items-center justify-between shrink-0 z-30">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black shadow-lg shadow-blue-600/30">
-            🛡️
+          {/* Dynamic Radar Shield & Telemetry Logo Mark */}
+          <div className="w-10 h-10 rounded-xl bg-blue-600/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 shadow-lg shadow-blue-500/5">
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {/* Radar circular sweeps */}
+              <circle cx="12" cy="12" r="9" className="stroke-blue-500/30" />
+              <path d="M12 3a9 9 0 0 1 9 9" className="stroke-blue-400 animate-pulse" />
+              <circle cx="12" cy="12" r="5" className="stroke-blue-500/50" />
+              
+              {/* Shield outline */}
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" className="stroke-blue-400" />
+              
+              {/* GPS target map marker & pulse inside shield */}
+              <path d="M12 7c-1.5 0-3 1.2-3 2.5 0 2 3 5.5 3 5.5s3-3.5 3-5.5C15 8.2 13.5 7 12 7z" fill="currentColor" className="text-blue-500" />
+              <circle cx="12" cy="9.5" r="1" fill="white" />
+              
+              {/* Connecting tech telemetry lines */}
+              <line x1="12" y1="2" x2="12" y2="22" strokeDasharray="2 2" className="stroke-blue-500/30" />
+              <line x1="2" y1="12" x2="22" y2="12" strokeDasharray="2 2" className="stroke-blue-500/30" />
+            </svg>
           </div>
+          
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="font-extrabold text-white text-lg tracking-tight">
+              <h1 className="font-extrabold text-white text-base md:text-lg tracking-tight leading-none">
                 Hyperlocal Safety System
               </h1>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                LIVE SYNC
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+                TELEMETRY ACTIVE
               </span>
             </div>
-            <p className="text-xs text-slate-400 hidden sm:block">
-              Real-Time Civic Telemetry & Auto-Clustered Incident Network • Jaipur Sector
+            <p className="text-[10px] sm:text-xs text-slate-400 font-medium">
+              Real-Time Civic Dispatch & Auto-Clustered Incident Network • Jaipur Sector
             </p>
           </div>
         </div>
@@ -137,12 +156,13 @@ export default function App() {
               </div>
             </div>
             <div
-              className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-sm border ${healthScore > 75
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                : healthScore > 45
+              className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-sm border ${
+                healthScore > 75
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : healthScore > 45
                   ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
                   : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-                }`}
+              }`}
             >
               {healthScore}
             </div>
@@ -152,7 +172,7 @@ export default function App() {
             onClick={() => setView('admin')}
             className="bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 px-4 py-2 rounded-xl text-xs font-bold tracking-wide transition flex items-center gap-2 shadow-sm cursor-pointer"
           >
-            <span>⚙️</span> Command Center
+            ⚙️ Command Center
           </button>
         </div>
       </header>
