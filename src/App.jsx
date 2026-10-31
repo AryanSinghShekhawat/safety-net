@@ -73,7 +73,7 @@ export default function App() {
 
       <div className="w-full max-w-md bg-gray-50 h-[800px] max-h-screen shadow-2xl relative flex flex-col overflow-hidden sm:rounded-[2.5rem] sm:border-8 border-gray-900">
         <header className="bg-white p-4 shadow-sm z-10 flex justify-between items-center shrink-0">
-          <h1 className="font-extrabold text-xl text-gray-900 tracking-tight">CityWatch</h1>
+          <h1 className="font-extrabold text-xl text-gray-900 tracking-tight">Hyperlocal Safety System</h1>
           <div className="flex items-center gap-2">
             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">
               Health
