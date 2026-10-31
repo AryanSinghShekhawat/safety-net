@@ -1,220 +1,363 @@
 import React, { useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { useRealtime } from './hooks/useRealtime';
+import { calculateDistance } from './utils/distance';
 import ReportForm from './components/ReportForm';
 import AdminDashboard from './AdminDashboard';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// Fix for default Vite marker icons
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+const getCategoryMeta = (category = '') => {
+  const lower = category.toLowerCase();
+  if (lower.includes('pothole')) return { icon: '🕳️', badge: 'bg-amber-50 text-amber-700 border-amber-200' };
+  if (lower.includes('light')) return { icon: '💡', badge: 'bg-yellow-50 text-yellow-700 border-yellow-200' };
+  if (lower.includes('water')) return { icon: '💧', badge: 'bg-cyan-50 text-cyan-700 border-cyan-200' };
+  if (lower.includes('power')) return { icon: '⚡', badge: 'bg-purple-50 text-purple-700 border-purple-200' };
+  return { icon: '⚠️', badge: 'bg-rose-50 text-rose-700 border-rose-200' };
+};
 
-// Forces Leaflet to recalculate its container size so grey gaps disappear
-function MapFixer({ center }) {
+const createCustomIcon = (category, upvotes) => {
+  const { icon } = getCategoryMeta(category);
+  const isHighPriority = Number(upvotes) >= 3;
+  return L.divIcon({
+    className: 'custom-pin',
+    html: `
+      <div class="pin-pulse" style="background: ${isHighPriority ? 'rgba(225, 29, 72, 0.45)' : 'rgba(37, 99, 235, 0.35)'}"></div>
+      <div class="pin-core" style="background: ${isHighPriority ? '#e11d48' : '#0f172a'}">${icon}</div>
+    `,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+    popupAnchor: [0, -18],
+  });
+};
+
+function MapController({ center, zoom }) {
   const map = useMap();
   useEffect(() => {
     const timer = setTimeout(() => {
       map.invalidateSize();
-      if (center) map.setView(center, map.getZoom());
-    }, 150);
+      if (center) map.flyTo(center, zoom || 14, { duration: 1.2 });
+    }, 100);
     return () => clearTimeout(timer);
-  }, [map, center]);
+  }, [map, center, zoom]);
   return null;
 }
-
-const getIcon = (category = '') => {
-  const lower = category.toLowerCase();
-  if (lower.includes('pothole')) return '🕳️';
-  if (lower.includes('light')) return '💡';
-  if (lower.includes('water')) return '💧';
-  return '⚠️';
-};
 
 export default function App() {
   const [view, setView] = useState('user');
   const [activeTab, setActiveTab] = useState('nearby');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [focusedCoords, setFocusedCoords] = useState(null);
+
   const { incidents = [], upvoteIncident } = useRealtime();
 
-  const defaultLat = 26.9124;
-  const defaultLng = 75.7873;
+  const [userCoords, setUserCoords] = useState({ lat: 26.9124, lng: 75.7873 });
 
-  const activeIncidents = incidents.filter((i) => !i.resolved);
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => { } // Keep Jaipur fallback if permission denied
+      );
+    }
+  }, []);
+
+  const userLat = userCoords.lat;
+  const userLng = userCoords.lng;
+
+  const activeIncidents = incidents
+    .filter((i) => !i.resolved)
+    .map((incident) => ({
+      ...incident,
+      distanceAway: calculateDistance
+        ? parseFloat(calculateDistance(userLat, userLng, incident.lat, incident.lng))
+        : 0.4,
+    }))
+    .sort((a, b) => a.distanceAway - b.distanceAway);
+
+  const filteredIncidents =
+    selectedCategory === 'All'
+      ? activeIncidents
+      : activeIncidents.filter((i) => i.category.toLowerCase().includes(selectedCategory.toLowerCase()));
+
   const healthScore = Math.max(0, 100 - activeIncidents.length * 5);
 
-  // Center map on the newest valid incident, or fallback to Jaipur
-  const validPins = activeIncidents.filter(
+  const validPins = filteredIncidents.filter(
     (i) => i.lat && i.lng && Math.abs(i.lat) <= 90 && Math.abs(i.lng) <= 180
   );
-  const mapCenter =
-    validPins.length > 0
+
+  const mapCenter = focusedCoords
+    ? focusedCoords
+    : validPins.length > 0
       ? [Number(validPins[0].lat), Number(validPins[0].lng)]
-      : [defaultLat, defaultLng];
+      : [userLat, userLng];
 
   if (view === 'admin') {
-    return <AdminDashboard onBack={() => setView('user')} />;
+    return <AdminDashboard incidents={incidents} onBack={() => setView('user')} />;
   }
 
+  const categories = ['All', 'Pothole', 'Streetlight', 'Water', 'Power', 'Hazard'];
+
   return (
-    <div className="bg-gray-200 flex flex-col items-center justify-center min-h-screen font-sans">
-      <Toaster position="top-center" />
+    <div className="h-screen w-screen overflow-hidden flex flex-col bg-slate-950 font-sans text-slate-900">
+      <Toaster position="top-right" />
 
-      <button
-        onClick={() => setView('admin')}
-        className="absolute top-4 right-4 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold z-50 shadow-xl"
-      >
-        Admin View
-      </button>
+      {/* Top Enterprise Navigation Bar */}
+      <header className="h-16 bg-slate-900 border-b border-slate-800 px-6 flex items-center justify-between shrink-0 z-30">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black shadow-lg shadow-blue-600/30">
+            🛡️
+          </div>
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="font-extrabold text-white text-lg tracking-tight">
+                Hyperlocal Safety System
+              </h1>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                LIVE SYNC
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 hidden sm:block">
+              Real-Time Civic Telemetry & Auto-Clustered Incident Network • Jaipur Sector
+            </p>
+          </div>
+        </div>
 
-      <div className="w-full max-w-md bg-gray-50 h-[800px] max-h-screen shadow-2xl relative flex flex-col overflow-hidden sm:rounded-[2.5rem] sm:border-8 border-gray-900">
-        <header className="bg-white p-4 shadow-sm z-10 flex justify-between items-center shrink-0">
-          <h1 className="font-extrabold text-xl text-gray-900 tracking-tight">Hyperlocal Safety System</h1>
-          <div className="flex items-center gap-2">
-            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">
-              Health
-              <br />
-              Score
+        {/* Right Telemetry Metrics & Mode Switcher */}
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3 bg-slate-800/80 border border-slate-700/80 px-3.5 py-1.5 rounded-xl">
+            <div className="text-right">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Zone Health Index
+              </div>
+              <div className="text-xs font-semibold text-slate-200">
+                {activeIncidents.length} Active Hazards
+              </div>
             </div>
             <div
-              className={`w-11 h-11 rounded-full border-[4px] flex items-center justify-center font-bold text-sm ${
-                healthScore > 70
-                  ? 'border-emerald-400 text-emerald-600 bg-emerald-50'
-                  : 'border-red-400 text-red-600 bg-red-50'
-              }`}
+              className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-sm border ${healthScore > 75
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : healthScore > 45
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                  : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                }`}
             >
               {healthScore}
             </div>
           </div>
-        </header>
 
-        <main className="flex-1 overflow-y-auto pb-4 relative bg-gray-50">
+          <button
+            onClick={() => setView('admin')}
+            className="bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 px-4 py-2 rounded-xl text-xs font-bold tracking-wide transition flex items-center gap-2 shadow-sm cursor-pointer"
+          >
+            <span>⚙️</span> Command Center
+          </button>
+        </div>
+      </header>
+
+      {/* Main Split-Screen Workspace */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+        {/* Left Control Panel (Feed + Form) */}
+        <aside className="w-full lg:w-[440px] xl:w-[480px] bg-white border-r border-slate-200 flex flex-col h-[55%] lg:h-full z-20 shadow-2xl order-2 lg:order-1">
+          {/* Action Switcher */}
+          <div className="p-4 border-b border-slate-100 bg-slate-50/60 flex gap-2 shrink-0">
+            <button
+              onClick={() => setActiveTab('nearby')}
+              className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'nearby'
+                ? 'bg-slate-900 text-white shadow-md'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                }`}
+            >
+              📡 Live Feed ({activeIncidents.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('report')}
+              className={`flex-1 py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'report'
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
+                }`}
+            >
+              ➕ Raise Report
+            </button>
+          </div>
+
           {activeTab === 'nearby' ? (
-            <div>
-              <div className="h-56 w-full relative shadow-inner overflow-hidden z-0">
-                <MapContainer
-                  center={mapCenter}
-                  zoom={13}
-                  style={{ height: '224px', width: '100%' }}
-                  zoomControl={false}
-                >
-                  <MapFixer center={mapCenter} />
-                  <TileLayer
-                    attribution="&copy; OpenStreetMap contributors"
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-
-                  {validPins.map((incident) => (
-                    <Marker
-                      key={incident.id}
-                      position={[Number(incident.lat), Number(incident.lng)]}
-                    >
-                      <Popup>
-                        <div className="text-center">
-                          <strong className="capitalize text-sm block">
-                            {incident.category}
-                          </strong>
-                          <span className="text-xs text-gray-500">
-                            Upvotes: {incident.upvotes}
-                          </span>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  ))}
-                </MapContainer>
-              </div>
-
-              <div className="p-4 space-y-4 -mt-4 relative z-10">
-                {activeIncidents.map((incident) => (
-                  <div
-                    key={incident.id}
-                    className="bg-white p-5 rounded-2xl shadow-sm border-l-[6px] border-blue-500"
+            <>
+              {/* Category Filter Pills */}
+              <div className="px-4 py-3 border-b border-slate-100 flex gap-2 overflow-x-auto shrink-0 bg-white">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition cursor-pointer ${selectedCategory === cat
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-4">
-                        <div className="bg-gray-50 p-3 rounded-xl text-2xl shadow-sm">
-                          {getIcon(incident.category)}
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900 text-lg leading-tight capitalize">
-                            {incident.category}
-                          </h3>
-                          <p className="text-xs text-gray-400 mt-1 font-medium">
-                            #{String(incident.id).slice(0, 6)}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => upvoteIncident(incident.id, incident.upvotes)}
-                        className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center gap-1 hover:bg-blue-100 transition"
-                      >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="3"
-                            d="M5 15l7-7 7 7"
-                          />
-                        </svg>
-                        {incident.upvotes}
-                      </button>
-                    </div>
-                  </div>
+                    {cat}
+                  </button>
                 ))}
               </div>
-            </div>
+
+              {/* Incident Feed List */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
+                {filteredIncidents.length === 0 ? (
+                  <div className="text-center py-16 px-4">
+                    <div className="text-4xl mb-3">✅</div>
+                    <h3 className="font-bold text-slate-800 text-base">All Clear in This Sector</h3>
+                    <p className="text-xs text-slate-500 mt-1">
+                      No active incidents match your filter. Raise a report to alert nearby citizens.
+                    </p>
+                  </div>
+                ) : (
+                  filteredIncidents.map((incident) => {
+                    const { icon, badge } = getCategoryMeta(incident.category);
+                    const isCritical = Number(incident.upvotes) >= 3;
+
+                    return (
+                      <div
+                        key={incident.id}
+                        onClick={() =>
+                          incident.lat &&
+                          incident.lng &&
+                          setFocusedCoords([Number(incident.lat), Number(incident.lng)])
+                        }
+                        className="group bg-white p-4 rounded-2xl border border-slate-200/80 hover:border-blue-500/60 shadow-sm hover:shadow-md transition-all cursor-pointer"
+                      >
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="flex items-start gap-3.5">
+                            <div className="w-11 h-11 rounded-xl bg-slate-100 group-hover:bg-blue-50 flex items-center justify-center text-xl shrink-0 transition">
+                              {icon}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="font-bold text-slate-900 text-sm capitalize">
+                                  {incident.category}
+                                </h3>
+                                {isCritical && (
+                                  <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase rounded-md bg-rose-100 text-rose-700 border border-rose-200">
+                                    Critical Cluster
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-slate-500 mt-1 font-medium">
+                                <span>📍 {incident.distanceAway || '0.3'} km away</span>
+                                <span>•</span>
+                                <span className="font-mono text-[11px] text-slate-400">
+                                  #{String(incident.id).slice(0, 5)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Upvote / Confirm Button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              upvoteIncident(incident.id, incident.upvotes);
+                            }}
+                            className="bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-800 px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition shrink-0 cursor-pointer"
+                            title="Confirm this hazard is still active"
+                          >
+                            <span>▲</span>
+                            <span>{incident.upvotes || 1}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </>
           ) : (
-            <div className="p-6 bg-white h-full">
-              <h2 className="text-2xl font-bold mb-6 text-gray-900">Report an Issue</h2>
+            <div className="flex-1 overflow-y-auto p-6 bg-white">
+              <div className="mb-6">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">
+                  Geo-Verified Dispatch
+                </span>
+                <h2 className="text-xl font-extrabold text-slate-900 mt-2">
+                  Report a Neighborhood Hazard
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Duplicate reports within 300m are automatically clustered using Haversine telemetry.
+                </p>
+              </div>
               <ReportForm onComplete={() => setActiveTab('nearby')} />
             </div>
           )}
-        </main>
+        </aside>
 
-        <nav className="w-full bg-white border-t border-gray-100 flex justify-around p-3 pb-6 sm:pb-4 z-20 shrink-0 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-          <button
-            onClick={() => setActiveTab('report')}
-            className={`flex flex-col items-center transition ${
-              activeTab === 'report' ? 'text-blue-600' : 'text-gray-400'
-            }`}
+        {/* Right Interactive Live Map */}
+        <main className="flex-1 h-[45%] lg:h-full relative z-10 order-1 lg:order-2">
+          <MapContainer
+            center={mapCenter}
+            zoom={14}
+            style={{ height: '100%', width: '100%' }}
+            zoomControl={false}
           >
-            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="text-[10px] font-bold tracking-wide">REPORT</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('nearby')}
-            className={`flex flex-col items-center transition ${
-              activeTab === 'nearby' ? 'text-blue-600' : 'text-gray-400'
-            }`}
-          >
-            <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
-            <span className="text-[10px] font-bold tracking-wide">NEARBY</span>
-          </button>
-        </nav>
+            <MapController center={mapCenter} zoom={focusedCoords ? 16 : 14} />
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+
+            {/* User 500m Monitoring Radar Circle */}
+            <Circle
+              center={[userLat, userLng]}
+              radius={600}
+              pathOptions={{
+                color: '#2563eb',
+                fillColor: '#3b82f6',
+                fillOpacity: 0.08,
+                weight: 1.5,
+                dashArray: '4 4',
+              }}
+            />
+
+            {/* Live Clustered Incident Markers */}
+            {validPins.map((incident) => (
+              <Marker
+                key={incident.id}
+                position={[Number(incident.lat), Number(incident.lng)]}
+                icon={createCustomIcon(incident.category, incident.upvotes)}
+              >
+                <Popup>
+                  <div className="p-1 min-w-[150px]">
+                    <div className="text-xs font-bold uppercase text-blue-600 mb-0.5">
+                      Verified Incident
+                    </div>
+                    <div className="font-extrabold text-slate-900 text-sm capitalize">
+                      {incident.category}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1 flex justify-between items-center">
+                      <span>Confirmations: <strong>{incident.upvotes || 1}</strong></span>
+                    </div>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
+
+          {/* Floating Map Legend Overlay */}
+          <div className="absolute bottom-5 right-5 z-[400] bg-slate-900/90 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-xl border border-slate-700/80 hidden sm:flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-slate-900 border-2 border-white inline-block" />
+              <span className="text-slate-300 font-medium">Standard Report</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-rose-600 border-2 border-white inline-block" />
+              <span className="text-slate-300 font-medium">Critical Cluster (3+ Upvotes)</span>
+            </div>
+            <button
+              onClick={() => setFocusedCoords([userLat, userLng])}
+              className="ml-2 bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1 rounded-lg font-bold transition cursor-pointer"
+            >
+              Recenter Radar
+            </button>
+          </div>
+        </main>
       </div>
     </div>
   );
